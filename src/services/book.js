@@ -53,13 +53,26 @@ async function getSingleBook(id){
 async function getBookByAuthor(author){
   const booksByAuthor = await prisma.book.findMany({
     where: {
-      author: {
-        contains: author,
+      author: author,
+    },
+  })
+  if(booksByAuthor.length==0){
+    throw new HttpError(404,'Cannot found any record')
+
+  }
+  else{ return booksByAuthor}
+ 
+}
+async function sortByRating(){
+  const books = await prisma.book.findMany({
+    orderBy: {
+      rating: {
+        rating: 'asc',
       },
     },
   })
+  return books
 }
-  
 
 // }
-module.exports = {storeAllBooks,uploadLikedOrDislike,getSingleBook,getBookByAuthor}
+module.exports = {storeAllBooks,uploadLikedOrDislike,getSingleBook,getBookByAuthor,sortByRating}
