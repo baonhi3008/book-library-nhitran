@@ -1,48 +1,69 @@
-
-// exports.callAPI (req,res,next)=>{
-//     // axios.get(API_1)
-//     //     .then(
-//     //     response => {
-//     //         console.log(response)
-//     //     })
-//     //     .catch(error => next(error) )
-    
-//     }
-// exports.getPosts = (req, res, next) => {
-//     res.status(200).json({
-//       posts: [{ title: 'First Post', content: 'This is the first post!' }]
-//     });
-//   };
-const API_1 = 'https://5gj1qvkc5h.execute-api.us-east-1.amazonaws.com/dev/allBooks'
-const API_2 = 'https://5gj1qvkc5h.execute-api.us-east-1.amazonaws.com/dev/findBookById/'
-
-
 const helper = require('../helper/index')
-// const { callExternalAPI } = require('../test')
-async function handleResquest(req,res,next){
+const services = require('../services/book')
+async function handleGet(req,res,next){
     try {
-        const response = await helper.callExternalAPI(API_1)
-        const ratingPromise = response.books.map((book)=>(
-            helper.callExternalAPI(`${API_2}${book.id}`)
-        ))
-        const ratings = await Promise.all(ratingPromise)
-        // console.log(ratings)
-        const bookWithRating = response.books.map((book,index)=>({
-            ...book,
-            rating: ratings[index].rating
-        }))
-        console.log(bookWithRating)
-        const byAuthor = helper.groupBy(bookWithRating,"Author")
-        return res.json(byAuthor)
+       const fetchAllBooks = await helper.getAllBooks()
+
+       const groupByAuthor = helper.groupBy(fetchAllBooks,"Author")
+
+       return res.json(groupByAuthor)
     }
         catch (error){
             next(error)
         }
 }
+async function storeData(req,res,next){
+    try{
+        const booksFromAPI = await helper.getAllBooks()
+        const storedData = await services.storeAllBooks(booksFromAPI)
+        res.status(200).send("Store all books in database")
+        return res.json(storedData)
+    }
+    catch(error){
+        next(error)
 
-module.exports = {handleResquest}
-    // exports.getPosts = (req, res, next) => {
-    //     res.status(200).json({
-    //       posts: [{ title: 'First Post', content: 'This is the first post!' }]
-    //     });
-    //   };
+    }
+}
+async function updateLike(req,res,next){
+    try{
+        
+        const {isLiked} = req.body
+        console.log(req.body)
+        await services.uploadLikedOrDislike(req.params.id,isLiked)
+        res.status(200).send('Update successfully')
+        res.json()
+    } catch(error){
+        next(error)
+    }
+}
+async function getOneBook(req,res,next){
+    try{
+        console.log(req.params.id)
+        const book = await services.getSingleBook(req.params.id)
+        const displayResult = {
+            id: book.id,
+            author: book.author,
+            name: book.name,
+            isLiked: book.isLiked
+        }
+        res.send(displayResult) // send book to display
+    }catch(error){
+        next(error)
+
+    }
+}
+async function getBooksFromAuthor(req,res,next){
+    try {
+        // const allBookGrouped = handleGet()
+        // const{author} = req.query
+        console.log(req.query)
+        const result = services.getBookByAuthor(req.query)
+        // const result = allBookGrouped[author]
+        return res.json(result)
+
+    }catch(error){
+        next(error)
+    }
+}
+
+module.exports = {handleGet,storeData,updateLike,getOneBook,getBooksFromAuthor}
